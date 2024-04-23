@@ -14,12 +14,19 @@ let kImageBitsPerPixel: Int = 32
 let kImageBytesCount: Int = 4
 
 extension UIImage {
-    convenience init(view: UIView) {
-        UIGraphicsBeginImageContext(view.frame.size)
-        view.layer.render(in: UIGraphicsGetCurrentContext()!)
-        let image = UIGraphicsGetImageFromCurrentImageContext()
-        UIGraphicsEndImageContext()
-        self.init(cgImage: (image?.cgImage)!)
+    convenience init?(view: UIView) {
+        // 使用UIGraphicsImageRenderer开始图形渲染
+        let renderer = UIGraphicsImageRenderer(size: view.bounds.size, format: UIGraphicsImageRendererFormat.default())
+        
+        // 用UIGraphicsImageRenderer渲染视图内容到UIImage
+        let image = renderer.image { context in
+            view.drawHierarchy(in: view.bounds, afterScreenUpdates: true)
+        }
+        
+        if let cgImage = image.cgImage {
+            self.init(cgImage: cgImage)
+        }
+        return nil
     }
     
     class func image(fromTexture: MTLTexture) -> UIImage {

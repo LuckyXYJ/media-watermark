@@ -30,21 +30,32 @@ extension MediaProcessor {
     }
     
     func processItemAfterFiltering(item: MediaItem, completion: @escaping ProcessCompletionHandler) {
-        UIGraphicsBeginImageContextWithOptions(item.sourceImage.size, false, item.sourceImage.scale)
-        item.sourceImage.draw(in: CGRect(x: 0, y: 0, width: item.sourceImage.size.width, height: item.sourceImage.size.height))
+        // 新的渲染器配置
+        let rendererFormat = UIGraphicsImageRendererFormat.default()
+        rendererFormat.scale = item.sourceImage.scale // 保留原图的scale
+        rendererFormat.opaque = false // 设置背景是否不透明
         
-        for element in item.mediaElements {
-            if element.type == .view {
-                UIImage(view: element.contentView).draw(in: element.frame)
-            } else if element.type == .image {
-                element.contentImage.draw(in: element.frame)
-            } else if element.type == .text {
-                element.contentText.draw(in: element.frame)
+        // 初始化一个renderer对象，传入大小和配置
+        let renderer = UIGraphicsImageRenderer(size: item.sourceImage.size, format: rendererFormat)
+        
+        // 使用renderer的image方法生成新的图像
+        let newImage = renderer.image { context in
+            item.sourceImage.draw(in: CGRect(x: 0, y: 0, width: item.sourceImage.size.width, height: item.sourceImage.size.height))
+            
+            for element in item.mediaElements {
+                switch element.type {
+                case .view:
+                    // 对于视图类型的元素，先将视图渲染为UIImage
+                    UIImage(view: element.contentView)?.draw(in: element.frame)
+                case .image:
+                    // 对于图片类型的元素，直接将图片绘制到上下文
+                    element.contentImage.draw(in: element.frame)
+                case .text:
+                    // 对于文本类型的元素，直接将文本绘制到上下文
+                    element.contentText.draw(in: element.frame)
+                }
             }
         }
-        
-        let newImage = UIGraphicsGetImageFromCurrentImageContext()
-        UIGraphicsEndImageContext()
         
         completion(MediaProcessResult(processedUrl: nil, image: newImage), nil)
     }
